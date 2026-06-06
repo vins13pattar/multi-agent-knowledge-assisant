@@ -13,7 +13,7 @@ import logging
 
 import streamlit as st
 
-from app.supervisor import run_query, get_chat_history
+from app.supervisor import run_query, get_chat_history, get_all_threads
 from app.rag import ingest_document, ingest_url, get_ingested_documents
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -47,6 +47,9 @@ if "chat_history" not in st.session_state:
 
 if "ingested_docs" not in st.session_state:
     st.session_state.ingested_docs = get_ingested_documents()
+
+if "chat_threads" not in st.session_state:
+    st.session_state.chat_threads = get_all_threads()
 
 if "last_trace" not in st.session_state:
     st.session_state.last_trace = None
@@ -131,6 +134,19 @@ st.markdown("""
     ::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.2);
     }
+
+    /* Left-align sidebar buttons for ChatGPT-like list navigation */
+    [data-testid="stSidebar"] .stButton button {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        font-size: 0.85em !important;
+    }
+    /* Keep primary action button centered */
+    [data-testid="stSidebar"] .stButton button[kind="primary"] {
+        text-align: center !important;
+        justify-content: center !important;
+        font-size: 1.0em !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -149,9 +165,27 @@ with st.sidebar:
         st.session_state.thread_id = new_thread
         st.query_params["thread_id"] = new_thread
         st.session_state.last_trace = None
+        st.session_state.chat_threads = get_all_threads()
         st.rerun()
 
     st.divider()
+
+    # ── Chat History ────────────────────────────────────────────────────
+    if st.session_state.chat_threads:
+        st.markdown("##### 💬 Past Chats")
+        for t in st.session_state.chat_threads:
+            is_active = t["thread_id"] == st.session_state.thread_id
+            icon = "💬" if is_active else "📄"
+            display_title = t["title"][:28] + "..." if len(t["title"]) > 28 else t["title"]
+            button_label = f"{icon} {display_title}"
+            
+            if st.button(button_label, key=f"thread_{t['thread_id']}", use_container_width=True):
+                st.session_state.thread_id = t["thread_id"]
+                st.query_params["thread_id"] = t["thread_id"]
+                st.session_state.chat_history = get_chat_history(t["thread_id"])
+                st.session_state.last_trace = None
+                st.rerun()
+        st.divider()
 
     # ── Document Upload ─────────────────────────────────────────────────
     st.markdown("##### 📁 Upload Documents")
@@ -229,6 +263,7 @@ with st.sidebar:
         st.session_state.thread_id = new_thread
         st.query_params["thread_id"] = new_thread
         st.session_state.last_trace = None
+        st.session_state.chat_threads = get_all_threads()
         st.success("Session reset completed")
         st.rerun()
 
@@ -267,6 +302,8 @@ if prompt := st.chat_input("Ask a question about your documents...", key="chat_i
                 )
                 response = result["final_answer"]
                 st.session_state.last_trace = result
+                # Refresh thread history list to include new thread or update title
+                st.session_state.chat_threads = get_all_threads()
             except Exception as e:
                 logger.error(f"Query failed: {e}", exc_info=True)
                 response = f"⚠️ An error occurred: {str(e)}"

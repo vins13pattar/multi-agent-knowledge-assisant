@@ -272,6 +272,36 @@ _db_initialized = False
 #  Public API
 # ═══════════════════════════════════════════════════════════════════════════
 
+def get_all_threads() -> list[dict]:
+    """Retrieve list of unique threads and their titles (first user message) from the checkpointer."""
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        return []
+
+    from langgraph.checkpoint.postgres import PostgresSaver
+    try:
+        with PostgresSaver.from_conn_string(db_url) as checkpointer:
+            seen_threads = {}
+            for item in checkpointer.list(config={}):
+                thread_id = item.config["configurable"].get("thread_id")
+                if thread_id and thread_id not in seen_threads:
+                    chat_history = item.checkpoint.get("channel_values", {}).get("chat_history", [])
+                    title = "Untitled Chat"
+                    if chat_history:
+                        user_messages = [msg for msg in chat_history if msg.get("role") == "user"]
+                        if user_messages:
+                            title = user_messages[0].get("content", "Untitled Chat")
+                    
+                    seen_threads[thread_id] = {
+                        "thread_id": thread_id,
+                        "title": title[:35] + "..." if len(title) > 35 else title
+                    }
+            return list(seen_threads.values())
+    except Exception as e:
+        logger.error(f"Failed to list threads from database: {e}")
+        return []
+
+
 def get_chat_history(thread_id: str) -> list[dict]:
     """Retrieve chat history from the database checkpointer."""
     db_url = os.getenv("DATABASE_URL")
