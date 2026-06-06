@@ -13,8 +13,8 @@ import logging
 
 import streamlit as st
 
-from app.supervisor import run_query
-from app.rag import ingest_document, ingest_url
+from app.supervisor import run_query, get_chat_history
+from app.rag import ingest_document, ingest_url, get_ingested_documents
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Page Configuration
@@ -35,13 +35,18 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════════════
 
 if "thread_id" not in st.session_state:
-    st.session_state.thread_id = str(uuid.uuid4())
+    q_params = st.query_params
+    if "thread_id" in q_params:
+        st.session_state.thread_id = q_params["thread_id"]
+    else:
+        st.session_state.thread_id = str(uuid.uuid4())
+        st.query_params["thread_id"] = st.session_state.thread_id
 
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+    st.session_state.chat_history = get_chat_history(st.session_state.thread_id)
 
 if "ingested_docs" not in st.session_state:
-    st.session_state.ingested_docs = []
+    st.session_state.ingested_docs = get_ingested_documents()
 
 if "last_trace" not in st.session_state:
     st.session_state.last_trace = None
@@ -171,7 +176,9 @@ with st.sidebar:
 
     if st.button("🗑️ Clear Memory", key="clear_memory", use_container_width=True):
         st.session_state.chat_history = []
-        st.session_state.thread_id = str(uuid.uuid4())
+        new_thread = str(uuid.uuid4())
+        st.session_state.thread_id = new_thread
+        st.query_params["thread_id"] = new_thread
         st.session_state.last_trace = None
         st.success("Memory cleared — new session started")
         st.rerun()

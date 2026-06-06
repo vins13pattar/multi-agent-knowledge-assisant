@@ -281,3 +281,32 @@ def retrieve_context(query: str, top_k: int = 5) -> list[RetrievedChunk]:
     chunks.sort(key=lambda c: c.similarity_score, reverse=True)
     logger.info(f"Retrieved {len(chunks)} chunks for query: '{query[:50]}...'")
     return chunks
+
+
+def get_ingested_documents() -> list[dict]:
+    """
+    Retrieve unique ingested document sources and chunk details from ChromaDB.
+    """
+    try:
+        collection = _get_collection()
+        results = collection.get(include=["metadatas"])
+        docs = {}
+        if results and "metadatas" in results and results["metadatas"]:
+            for meta in results["metadatas"]:
+                if not meta:
+                    continue
+                source = meta.get("source")
+                total_chunks = meta.get("total_chunks", 1)
+                if source:
+                    is_url = source.startswith("http://") or source.startswith("https://")
+                    doc_type = "url" if is_url else "file"
+                    docs[source] = {
+                        "name": source,
+                        "chunks": total_chunks,
+                        "type": doc_type,
+                    }
+        return list(docs.values())
+    except Exception as e:
+        logger.error(f"Failed to fetch ingested documents from ChromaDB: {e}", exc_info=True)
+        return []
+

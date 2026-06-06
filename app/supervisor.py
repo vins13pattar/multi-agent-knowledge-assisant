@@ -10,6 +10,7 @@ import os
 import json
 import asyncio
 import logging
+import concurrent.futures
 from typing import Literal
 
 from langchain_openai import ChatOpenAI
@@ -20,6 +21,14 @@ from app.models import AgentState, RetrievedChunk
 from app.rag import retrieve_context
 from app.crew import build_crew
 from app.mcp_client import MCPClient
+
+
+def run_async(coro):
+    """Run an async coroutine in a thread-safe manner using a background thread."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(asyncio.run, coro)
+        return future.result()
+
 
 logger = logging.getLogger(__name__)
 
@@ -135,13 +144,15 @@ def build_mcp_node(state: AgentState) -> dict:
 
     mcp_client = _get_mcp_client()
 
+    async def run_and_close():
+        try:
+            return await mcp_client.validate_and_share(chunks, agent_id="supervisor")
+        finally:
+            await mcp_client.close()
+
     try:
-        # Run async MCP operations in sync context
-        loop = asyncio.new_event_loop()
-        mcp_context = loop.run_until_complete(
-            mcp_client.validate_and_share(chunks, agent_id="supervisor")
-        )
-        loop.close()
+        # Run async MCP operations in thread-safe sync context
+        mcp_context = run_async(run_and_close())
 
         context_dict = {
             "context_id": mcp_context.context_id,
@@ -260,6 +271,26 @@ _db_initialized = False
 # ═══════════════════════════════════════════════════════════════════════════
 #  Public API
 # ═══════════════════════════════════════════════════════════════════════════
+
+def get_chat_history(thread_id: str) -> list[dict]:
+    """Retrieve chat history from the database checkpointer."""
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        return []
+
+    from langgraph.checkpoint.postgres import PostgresSaver
+    try:
+        with PostgresSaver.from_conn_string(db_url) as checkpointer:
+            compiled_graph = _build_graph().compile(checkpointer=checkpointer)
+            config = {"configurable": {"thread_id": thread_id}}
+            state = compiled_graph.get_state(config)
+
+            if state and state.values and "chat_history" in state.values:
+                return state.values["chat_history"]
+    except Exception as e:
+        logger.error(f"Failed to retrieve chat history for thread {thread_id}: {e}")
+    return []
+
 
 def run_query(query: str, thread_id: str) -> dict:
     """
