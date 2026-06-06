@@ -30,7 +30,8 @@ COLLECTION_NAME = "capstone_docs"
 CHUNK_SIZE = 512       # tokens
 CHUNK_OVERLAP = 50     # tokens
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-MIN_SIMILARITY = 0.65  # minimum cosine similarity threshold
+MIN_SIMILARITY = 0.0  # Let top_k handle retrieval; agents filter relevance
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════
