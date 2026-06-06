@@ -102,6 +102,14 @@ with st.sidebar:
     st.title("🧠 Knowledge Assistant")
     st.caption("RAG + Multi-Agent System")
 
+    if st.button("➕ New Chat", key="new_chat_btn", type="primary", use_container_width=True):
+        st.session_state.chat_history = []
+        new_thread = str(uuid.uuid4())
+        st.session_state.thread_id = new_thread
+        st.query_params["thread_id"] = new_thread
+        st.session_state.last_trace = None
+        st.rerun()
+
     st.divider()
 
     # ── Document Upload ─────────────────────────────────────────────────
@@ -174,13 +182,13 @@ with st.sidebar:
     st.divider()
     st.markdown("##### ⚙️ Settings")
 
-    if st.button("🗑️ Clear Memory", key="clear_memory", use_container_width=True):
+    if st.button("🗑️ Reset Session", key="clear_memory", use_container_width=True):
         st.session_state.chat_history = []
         new_thread = str(uuid.uuid4())
         st.session_state.thread_id = new_thread
         st.query_params["thread_id"] = new_thread
         st.session_state.last_trace = None
-        st.success("Memory cleared — new session started")
+        st.success("Session reset completed")
         st.rerun()
 
     st.caption(f"Session: `{st.session_state.thread_id[:8]}...`")
