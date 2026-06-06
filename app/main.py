@@ -52,43 +52,84 @@ if "last_trace" not in st.session_state:
     st.session_state.last_trace = None
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-#  Custom CSS
-# ═══════════════════════════════════════════════════════════════════════════
-
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap');
+
+    /* Global Font Override & Theme Adjustments */
+    html, body, [class*="css"], .stApp {
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+    }
+
+    /* Headers styling */
+    h1, h2, h3, h4, h5, h6, [data-testid="stHeader"] {
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em !important;
+    }
+
     /* Agent trace styling */
     .agent-trace {
-        background-color: #1e1e2e;
+        background-color: #0d0e15 !important;
+        border-left: 3px solid #8b5cf6 !important;
         border-radius: 8px;
-        padding: 12px;
-        font-family: 'Courier New', monospace;
+        padding: 14px;
+        font-family: 'Fira Code', monospace;
         font-size: 0.85em;
+        color: #cbd5e1;
     }
     .trace-intent {
-        color: #89b4fa;
+        color: #38bdf8;
         font-weight: bold;
     }
     .trace-chunks {
-        color: #a6e3a1;
+        color: #34d399;
     }
     .trace-score {
-        color: #fab387;
+        color: #fb923c;
     }
     /* Citation styling */
     .citation {
-        color: #89b4fa;
+        color: #8b5cf6;
+        font-weight: 600;
         font-size: 0.85em;
         cursor: pointer;
     }
-    /* Sidebar section headers */
-    .sidebar-header {
-        font-size: 0.9em;
-        color: #6c7086;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-top: 1em;
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Primary Button Styling (New Chat) */
+    .stButton button[kind="primary"] {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35) !important;
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton button[kind="primary"]:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px rgba(124, 58, 237, 0.5) !important;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.01);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
     }
 </style>
 """, unsafe_allow_html=True)
